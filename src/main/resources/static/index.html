@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><title>AgriMarket – Fresh from farms to your home</title></head><body>
+<div id="site-header"></div>
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <h1>Fresh from farms,<br>direct to your home</h1>
+      <p>Support local farmers. Get fresh, organic and healthy products at the best prices.</p>
+      <a class="btn" href="products.html">Shop now</a>
+    </div>
+    <ul><li>100% organic</li><li>Direct from farmers</li><li>Fast and safe delivery</li></ul>
+    <div class="big" aria-hidden="true">🌾</div>
+  </section>
+  <nav class="cats" aria-label="Categories">
+    <a class="cat" href="products.html?category=Vegetables"><span>🥦</span>Vegetables</a>
+    <a class="cat" href="products.html?category=Fruits"><span>🍎</span>Fruits</a>
+    <a class="cat" href="products.html?category=Grains"><span>🌾</span>Grains</a>
+    <a class="cat" href="products.html?category=Dairy"><span>🥛</span>Dairy</a>
+    <a class="cat" href="products.html?category=Spices"><span>🌶️</span>Spices</a>
+    <a class="cat" href="products.html?category=Seeds"><span>🌱</span>Seeds</a>
+    <a class="cat" href="products.html"><span>✨</span>All products</a>
+  </nav>
+  <div class="sec-h"><h2>Featured products</h2><a href="products.html">View all</a></div>
+  <div class="grid" id="featured"><p class="meta">Loading products…</p></div>
+  <section class="banner"><h3>Healthy food, better tomorrow</h3><p>Choose organic. Choose AgriMarket.</p><a class="btn" style="background:#fff;color:var(--g700)" href="products.html">Explore now</a></section>
+</main>
+<div id="site-footer"></div>
+<script src="js/app.js"></script>
+<script>
+renderHeader(); renderFooter();
+api("/products?sort=popular").then(ps => {
+  document.getElementById("featured").innerHTML = ps.slice(0, 4).map(productCard).join("");
+}).catch(e => { document.getElementById("featured").innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
+</script></body></html>

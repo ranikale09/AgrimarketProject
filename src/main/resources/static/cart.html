@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><title>Cart – AgriMarket</title></head><body>
+<div id="site-header"></div>
+<main class="wrap"><h1 id="h" style="margin-top:28px">Your cart</h1><div id="root"></div></main>
+<div id="site-footer"></div>
+<script src="js/app.js"></script>
+<script>
+renderHeader(); renderFooter();
+async function draw() {
+  if (!requireLogin()) return;
+  const items = await api("/cart");
+  const root = document.getElementById("root");
+  document.getElementById("h").textContent = "Your cart (" + items.length + (items.length === 1 ? " item)" : " items)");
+  if (!items.length) { root.innerHTML = '<div class="card empty">Your cart is empty. Add fresh produce to get started.<br><a class="btn" href="products.html">Browse products</a></div>'; return; }
+  const sub = items.reduce((s, i) => s + i.product.price * i.quantity, 0), del = deliveryFor(sub);
+  root.innerHTML = '<div class="two"><section class="card panel">' + items.map(i =>
+    '<div class="line"><div class="thumb cat-' + esc((i.product.category || "").toLowerCase()) + '">' + (i.product.emoji || "🥬") + "</div>" +
+    '<div><b>' + esc(i.product.name) + '</b><div class="meta">' + money(i.product.price) + "/" + esc(i.product.unit) + "</div></div>" +
+    '<div class="qty"><button aria-label="Decrease" onclick="chg(' + i.id + "," + (i.quantity - 1) + ')">−</button><span>' + i.quantity + '</span><button aria-label="Increase" onclick="chg(' + i.id + "," + (i.quantity + 1) + ')">+</button></div>' +
+    "<b>" + money(i.product.price * i.quantity) + '</b><button class="btn danger sm remove" onclick="rm(' + i.id + ')">Remove</button></div>').join("") + "</section>" +
+    '<aside class="card panel"><h3>Order summary</h3><div class="sum"><span>Subtotal</span><span>' + money(sub) + "</span></div>" +
+    '<div class="sum"><span>Delivery charges</span><span>' + (del ? money(del) : "Free") + "</span></div>" +
+    '<div class="sum total"><span>Total</span><b>' + money(sub + del) + "</b></div>" +
+    '<p class="meta">Free delivery on orders of ' + money(FREE_ABOVE) + ' or more.</p>' +
+    '<a class="btn block" href="checkout.html">Proceed to checkout</a><p style="text-align:center"><a class="meta" href="products.html">Continue shopping</a></p></aside></div>';
+}
+async function chg(id, q) { if (q < 1) return rm(id); try { await api("/cart/" + id, { method: "PUT", body: { quantity: q } }); draw(); refreshCartCount(); } catch (e) { toast(e.message); } }
+async function rm(id) { await api("/cart/" + id, { method: "DELETE" }); draw(); refreshCartCount(); }
+draw().catch(e => toast(e.message));
+</script></body></html>

@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><title>Dashboard – AgriMarket</title></head><body>
+<div id="site-header"></div>
+<main class="wrap"><div id="root"></div></main>
+<dialog id="dlg"><form class="form" id="pf" method="dialog">
+  <h3 id="dt" style="margin:0">Add product</h3>
+  <label>Name<input class="field" name="name" required></label>
+  <div class="two-col"><label>Category<select name="category"><option>Vegetables</option><option>Fruits</option><option>Grains</option><option>Dairy</option><option>Spices</option><option>Seeds</option><option>Others</option></select></label>
+  <label>Emoji<input class="field" name="emoji" maxlength="4" placeholder="🥬"></label></div>
+  <div class="two-col"><label>Price (₹)<input class="field" name="price" type="number" min="1" step="0.5" required></label><label>Unit<input class="field" name="unit" value="kg"></label></div>
+  <label>Stock<input class="field" name="stock" type="number" min="0" required></label>
+  <label>Description<textarea class="field" name="description" rows="3"></textarea></label>
+  <label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="organic" checked> Organic</label>
+  <p class="err" id="perr" role="alert"></p>
+  <div class="row"><button class="btn" id="psave">Save product</button><button class="btn ghost" type="button" id="pcancel">Cancel</button></div>
+</form></dialog>
+<div id="site-footer"></div>
+<script src="js/app.js"></script>
+<script>
+renderHeader(); renderFooter();
+const u = store.user, root = document.getElementById("root");
+const stat = (n, l) => '<div class="card stat"><b>' + n + "</b><span>" + l + "</span></div>";
+const pill = s => '<span class="pill ' + (s === "DELIVERED" ? "" : "amber") + '">' + STATUS_LABEL[s] + "</span>";
+if (!requireLogin()) { /* redirected */ }
+else if (u.role === "CUSTOMER") customer(); else if (u.role === "FARMER") farmer(); else admin();
+
+async function customer() {
+  const orders = await api("/orders"), pending = orders.filter(o => o.status !== "DELIVERED").length;
+  root.innerHTML = '<h1 style="margin-top:28px">Welcome back, ' + esc(u.name.split(" ")[0]) + "!</h1>" +
+    '<div class="stats">' + stat(orders.length, "Total orders") + stat(pending, "Pending delivery") + stat(money(orders.reduce((s, o) => s + Number(o.total), 0)), "Total spent") + "</div>" +
+    '<section class="card panel"><h3>Recent orders</h3>' + (orders.length ? '<div class="table-wrap"><table><thead><tr><th>Order ID</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>' +
+    orders.slice(0, 8).map(o => "<tr><td>" + esc(o.orderNumber) + "</td><td>" + fmtDate(o.createdAt) + "</td><td>" + money(o.total) + "</td><td>" + pill(o.status) + "</td></tr>").join("") + "</tbody></table></div>"
+    : '<p class="meta">No orders yet. <a href="products.html" style="color:var(--g600);font-weight:700">Start shopping</a></p>') + "</section>";
+}
+
+let myProducts = [], editId = null;
+async function farmer() {
+  const [st, prods, orders] = await Promise.all([api("/farmer/stats"), api("/farmer/products"), api("/farmer/orders")]);
+  myProducts = prods;
+  root.innerHTML = '<h1 style="margin-top:28px">Welcome, ' + esc(u.name) + "</h1>" +
+    '<div class="stats">' + stat(st.products, "Products") + stat(st.orders, "Orders received") + stat(money(st.revenue), "Total sales") + "</div>" +
+    '<section class="card panel" style="margin-bottom:18px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Your products</h3><button class="btn sm" onclick="openForm()">Add product</button></div>' +
+    (prods.length ? '<div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th></th></tr></thead><tbody>' + prods.map(p =>
+      "<tr><td>" + (p.emoji || "") + " " + esc(p.name) + "</td><td>" + esc(p.category) + "</td><td>" + money(p.price) + "/" + esc(p.unit) + "</td><td>" + p.stock + '</td><td class="row"><button class="btn ghost sm" onclick="openForm(' + p.id + ')">Edit</button><button class="btn danger sm" onclick="delProd(' + p.id + ')">Delete</button></td></tr>').join("") + "</tbody></table></div>"
+      : '<p class="meta">You have no products listed yet. Add your first product to start selling.</p>') + "</section>" +
+    '<section class="card panel"><h3>Orders</h3>' + (orders.length ? '<div class="table-wrap"><table><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Amount</th><th>Status</th></tr></thead><tbody>' + orders.map(o =>
+      "<tr><td>" + esc(o.orderNumber) + "</td><td>" + esc(o.customerName) + "</td><td>" + o.items.map(i => esc(i.productName) + " × " + i.quantity).join(", ") + "</td><td>" + money(o.amount) + '</td><td><select class="inline" aria-label="Order status" onchange="setStatus(' + o.id + ', this.value)">' +
+      STATUSES.map(s => '<option value="' + s + '"' + (s === o.status ? " selected" : "") + ">" + STATUS_LABEL[s] + "</option>").join("") + "</select></td></tr>").join("") + "</tbody></table></div>"
+      : '<p class="meta">No orders yet.</p>') + "</section>";
+}
+function openForm(id) {
+  editId = id || null;
+  const f = document.getElementById("pf"), p = myProducts.find(x => x.id === id) || {};
+  document.getElementById("dt").textContent = id ? "Edit product" : "Add product";
+  f.name.value = p.name || ""; f.category.value = p.category || "Vegetables"; f.emoji.value = p.emoji || "";
+  f.price.value = p.price || ""; f.unit.value = p.unit || "kg"; f.stock.value = p.stock ?? ""; f.description.value = p.description || "";
+  f.organic.checked = id ? p.organic : true;
+  document.getElementById("perr").textContent = "";
+  document.getElementById("dlg").showModal();
+}
+document.getElementById("pcancel").onclick = () => document.getElementById("dlg").close();
+document.getElementById("pf").onsubmit = async ev => {
+  ev.preventDefault();
+  const f = ev.target, body = { name: f.name.value, category: f.category.value, emoji: f.emoji.value, price: Number(f.price.value), unit: f.unit.value, stock: Number(f.stock.value), description: f.description.value, organic: f.organic.checked };
+  try { await api(editId ? "/farmer/products/" + editId : "/farmer/products", { method: editId ? "PUT" : "POST", body }); document.getElementById("dlg").close(); toast("Product saved"); farmer(); }
+  catch (e) { document.getElementById("perr").textContent = e.message; }
+};
+async function delProd(id) { if (!confirm("Delete this product? This cannot be undone.")) return; try { await api("/farmer/products/" + id, { method: "DELETE" }); toast("Product deleted"); farmer(); } catch (e) { toast(e.message); } }
+async function setStatus(id, status) { try { await api("/farmer/orders/" + id + "/status", { method: "PUT", body: { status } }); toast("Status updated"); } catch (e) { toast(e.message); } }
+
+async function admin() {
+  const [st, users] = await Promise.all([api("/admin/stats"), api("/admin/users")]);
+  root.innerHTML = '<h1 style="margin-top:28px">System overview</h1><div class="stats">' + stat(st.users, "Total users") + stat(st.farmers, "Farmers") + stat(st.orders, "Total orders") + stat(money(st.revenue), "Total revenue") + "</div>" +
+    '<section class="card panel"><h3>Users</h3><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead><tbody>' +
+    users.map(x => "<tr><td>" + esc(x.name) + "</td><td>" + esc(x.email) + "</td><td>" + esc(x.role.charAt(0) + x.role.slice(1).toLowerCase()) + '</td><td><span class="pill">' + (x.verified ? "Verified" : "Pending") + "</span></td></tr>").join("") + "</tbody></table></div></section>";
+}
+</script></body></html>

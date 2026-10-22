@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><title>Log in – AgriMarket</title></head><body>
+<div id="site-header"></div>
+<main class="wrap"><section class="card auth">
+  <div class="tabs" role="tablist"><button id="t-login" class="on" type="button">Log in</button><button id="t-reg" type="button">Create account</button></div>
+  <form class="form" id="f">
+    <label id="n-row" hidden>Full name<input class="field" name="name"></label>
+    <label>Email<input class="field" name="email" type="email" required autocomplete="email"></label>
+    <label>Password<input class="field" name="password" type="password" required minlength="6" autocomplete="current-password"></label>
+    <label id="r-row" hidden>I want to<select name="role"><option value="CUSTOMER">Buy fresh produce</option><option value="FARMER">Sell my produce</option></select></label>
+    <p class="err" id="err" role="alert"></p>
+    <button class="btn" id="go">Log in</button>
+  </form>
+  <p class="meta" id="demo">Demo accounts: rani@example.com (customer), ramesh@agrimarket.com (farmer), admin@agrimarket.com (admin). Passwords: password123 (admin: admin123).</p>
+</section></main>
+<script src="js/app.js"></script>
+<script>
+renderHeader();
+let mode = "login";
+function setMode(m) {
+  mode = m;
+  document.getElementById("t-login").classList.toggle("on", m === "login");
+  document.getElementById("t-reg").classList.toggle("on", m === "register");
+  document.getElementById("n-row").hidden = document.getElementById("r-row").hidden = m === "login";
+  document.getElementById("go").textContent = m === "login" ? "Log in" : "Create account";
+  document.getElementById("demo").hidden = m !== "login";
+}
+document.getElementById("t-login").onclick = () => setMode("login");
+document.getElementById("t-reg").onclick = () => setMode("register");
+document.getElementById("f").onsubmit = async ev => {
+  ev.preventDefault();
+  const f = Object.fromEntries(new FormData(ev.target)), err = document.getElementById("err"), btn = document.getElementById("go");
+  err.textContent = ""; btn.disabled = true;
+  try {
+    const r = await api("/auth/" + mode, { method: "POST", body: f });
+    localStorage.setItem("token", r.token); localStorage.setItem("user", JSON.stringify(r.user));
+    const next = param("next");
+    location.href = next && !next.includes("//") ? next : (r.user.role === "CUSTOMER" ? "index.html" : "dashboard.html");
+  } catch (e) { err.textContent = e.message; btn.disabled = false; }
+};
+</script></body></html>

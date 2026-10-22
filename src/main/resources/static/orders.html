@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><title>My orders – AgriMarket</title></head><body>
+<div id="site-header"></div>
+<main class="wrap"><h1 style="margin-top:28px">Track your orders</h1><div id="root"></div></main>
+<div id="site-footer"></div>
+<script src="js/app.js"></script>
+<script>
+renderHeader(); renderFooter();
+(async () => {
+  if (!requireLogin()) return;
+  if (param("placed")) toast("Order placed. Thank you for supporting local farmers!");
+  const orders = await api("/orders"), root = document.getElementById("root");
+  if (!orders.length) { root.innerHTML = '<div class="card empty">You have not placed any orders yet.<br><a class="btn" href="products.html">Start shopping</a></div>'; return; }
+  root.innerHTML = orders.map(o => '<section class="card order"><div class="order-h"><div><b>Order ID: ' + esc(o.orderNumber) + '</b><div class="meta">Placed on ' + fmtDate(o.createdAt) + '</div></div><span class="pill ' + (o.status === "DELIVERED" ? "" : "amber") + '">' + STATUS_LABEL[o.status] + "</span></div>" +
+    trackHtml(o.status) +
+    '<div class="table-wrap"><table><tbody>' + o.items.map(i => "<tr><td>" + (i.emoji || "") + " " + esc(i.productName) + "</td><td>" + i.quantity + " " + esc(i.unit) + "</td><td>" + money(i.price * i.quantity) + "</td></tr>").join("") + "</tbody></table></div>" +
+    '<div class="sum"><span>Delivery</span><span>' + (Number(o.deliveryCharge) ? money(o.deliveryCharge) : "Free") + '</span></div><div class="sum total"><span>Total</span><b>' + money(o.total) + "</b></div>" +
+    '<p class="meta">Deliver to: ' + esc(o.address) + " · Payment: " + (o.paymentMethod === "UPI" ? "UPI on delivery" : "Cash on delivery") + "</p></section>").join("");
+})().catch(e => toast(e.message));
+</script></body></html>

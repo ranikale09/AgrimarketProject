@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><title>Products – AgriMarket</title></head><body>
+<div id="site-header"></div>
+<main class="wrap layout">
+  <aside class="card side" aria-label="Filters">
+    <div><h4>Categories</h4><div id="cat-list"></div></div>
+    <div><h4>Price range</h4>
+      <label><input type="radio" name="price" value="" checked> Any price</label>
+      <label><input type="radio" name="price" value="0-20"> Under ₹20</label>
+      <label><input type="radio" name="price" value="20-50"> ₹20 – ₹50</label>
+      <label><input type="radio" name="price" value="50-100"> ₹50 – ₹100</label>
+      <label><input type="radio" name="price" value="100-99999"> ₹100+</label></div>
+    <div><h4>Availability</h4><label><input type="checkbox" id="instock"> In stock only</label></div>
+  </aside>
+  <section>
+    <div class="toolbar"><div><h1 id="title">All products</h1><span class="meta" id="count"></span></div>
+      <label class="meta">Sort by <select id="sort" class="inline">
+        <option value="popular">Popularity</option><option value="price_asc">Price: low to high</option>
+        <option value="price_desc">Price: high to low</option><option value="newest">Newest first</option></select></label></div>
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+<div id="site-footer"></div>
+<script src="js/app.js"></script>
+<script>
+renderHeader(); renderFooter();
+const CATS = ["All", "Vegetables", "Fruits", "Grains", "Dairy", "Spices", "Seeds"];
+let category = param("category") || "All";
+const q = param("q") || "";
+function drawCats() {
+  document.getElementById("cat-list").innerHTML = CATS.map(c =>
+    '<label><input type="radio" name="cat" value="' + c + '"' + (c === category ? " checked" : "") + "> " + c + "</label>").join("");
+  document.querySelectorAll('input[name=cat]').forEach(r => r.onchange = () => { category = r.value; load(); });
+}
+async function load() {
+  const params = new URLSearchParams({ category, sort: document.getElementById("sort").value });
+  if (q) params.set("q", q);
+  if (document.getElementById("instock").checked) params.set("inStock", "true");
+  const range = document.querySelector('input[name=price]:checked').value;
+  let list;
+  try { list = await api("/products?" + params); } catch (e) { document.getElementById("grid").innerHTML = '<p class="err">' + esc(e.message) + "</p>"; return; }
+  if (range) { const [lo, hi] = range.split("-").map(Number); list = list.filter(p => p.price >= lo && p.price < hi); }
+  document.getElementById("title").textContent = q ? 'Results for "' + q + '"' : (category === "All" ? "All products" : "Fresh " + category.toLowerCase());
+  document.getElementById("count").textContent = list.length + " products";
+  document.getElementById("grid").innerHTML = list.length ? list.map(productCard).join("")
+    : '<div class="empty" style="grid-column:1/-1">No products match these filters. Clear a filter to see more.</div>';
+}
+drawCats(); load();
+document.getElementById("sort").onchange = load;
+document.getElementById("instock").onchange = load;
+document.querySelectorAll('input[name=price]').forEach(r => r.onchange = load);
+</script></body></html>

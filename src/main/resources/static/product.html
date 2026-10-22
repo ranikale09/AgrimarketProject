@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><title>Product – AgriMarket</title></head><body>
+<div id="site-header"></div>
+<main class="wrap"><div id="root"><p class="meta" style="padding:24px">Loading…</p></div></main>
+<div id="site-footer"></div>
+<script src="js/app.js"></script>
+<script>
+renderHeader(); renderFooter();
+let qty = 1, product = null;
+function setQty(d) { qty = Math.max(1, Math.min(product.stock, qty + d)); document.getElementById("q").textContent = qty; }
+(async () => {
+  const root = document.getElementById("root");
+  try { product = await api("/products/" + param("id")); } catch (e) { root.innerHTML = '<div class="empty">' + esc(e.message) + '<br><a class="btn" href="products.html">Browse products</a></div>'; return; }
+  const p = product, out = p.stock <= 0, f = p.farmer || {};
+  document.title = p.name + " – AgriMarket";
+  root.innerHTML = '<p class="meta" style="margin:20px 0 0"><a href="index.html">Home</a> / <a href="products.html?category=' + encodeURIComponent(p.category) + '">' + esc(p.category) + "</a> / " + esc(p.name) + "</p>" +
+  '<section class="card detail">' +
+    '<div class="big-img cat-' + esc((p.category || "").toLowerCase()) + '" aria-hidden="true">' + (p.emoji || "🥬") + "</div>" +
+    "<div><h1>Fresh " + esc(p.name) + "</h1>" +
+      '<div class="price" style="font-size:26px">' + money(p.price) + "<small>/" + esc(p.unit) + "</small></div>" +
+      '<div class="meta"><span class="stars">' + stars(p.rating) + "</span> (" + p.rating + ") · " + p.reviews + " reviews</div>" +
+      '<p>' + esc(p.description || "") + "</p>" +
+      '<div class="badges">' + (p.organic ? '<span class="badge">Organic</span>' : "") + '<span class="badge">Local farmer</span><span class="badge">' + (out ? "Out of stock" : p.stock + " " + esc(p.unit) + " available") + "</span></div>" +
+      '<div class="row"><div class="qty"><button aria-label="Decrease quantity" onclick="setQty(-1)">−</button><span id="q">1</span><button aria-label="Increase quantity" onclick="setQty(1)">+</button></div>' +
+      '<button class="btn" ' + (out ? "disabled" : "") + ' onclick="addToCart(product.id, qty)">Add to cart</button></div></div>' +
+    '<aside class="card panel"><h3>Farmer details</h3><b>' + esc(f.name || "Local farmer") + '</b><br><span class="pill">Verified farmer</span>' +
+      '<p class="meta">Location: ' + esc(f.location || "India") + '</p><a class="btn ghost block" href="products.html?q=' + encodeURIComponent(f.name || "") + '">View more products</a></aside>' +
+  "</section>";
+})();
+</script></body></html>
