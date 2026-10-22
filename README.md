@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AgriMarket
 
 Farm-to-home grocery marketplace.
@@ -70,3 +71,6 @@ src/main/resources
 - Product images use emoji. Add an `imageUrl` column and an upload endpoint to use photos.
 - Keep the JWT secret and DB password out of source control (use environment variables).
 - Switch `spring.jpa.hibernate.ddl-auto` from `update` to `validate` and use Flyway migrations in production.
+=======
+# AgrimarketProject
+>>>>>>> 8fce772e4f99a2109c6705bbd4f9acdfbced8119
